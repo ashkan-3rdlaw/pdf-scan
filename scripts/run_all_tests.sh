@@ -80,12 +80,15 @@ else
 fi
 echo ""
 
+# Run metrics test as the final test
+run_test "test_metrics.sh" "Metrics Endpoint Test"
+
 # Print summary
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║                    TEST SUMMARY                            ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "Total Tests: $((PASSED + FAILED)) (7 test scripts)"
+echo -e "Total Tests: $((PASSED + FAILED)) (8 test scripts)"
 echo -e "${GREEN}Passed: $PASSED${NC}"
 if [ $FAILED -gt 0 ]; then
     echo -e "${RED}Failed: $FAILED${NC}"

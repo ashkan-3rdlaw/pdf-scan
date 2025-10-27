@@ -1,6 +1,7 @@
 """Document processor for handling uploaded PDFs."""
 
 import tempfile
+import time
 from pathlib import Path
 from typing import Dict
 
@@ -28,7 +29,7 @@ class DocumentProcessor:
         4. Scans PDF for sensitive data
         5. Stores findings in database
         6. Updates document status (completed/failed)
-        7. Records metrics
+        7. Records metrics with timing
         8. Cleans up temp file
         
         Args:
@@ -43,6 +44,9 @@ class DocumentProcessor:
         Raises:
             Exception: If file saving, scanning, or database operations fail
         """
+        # Start timing the entire upload process
+        upload_start_time = time.time()
+        
         # Create document record with processing status
         document = Document.create(
             filename=filename,
@@ -57,6 +61,8 @@ class DocumentProcessor:
         )
         
         temp_path = None
+        scan_duration_ms = 0.0
+        
         try:
             # Save to temporary storage for scanning
             with tempfile.NamedTemporaryFile(
@@ -69,7 +75,10 @@ class DocumentProcessor:
                 temp_path = temp_file.name
             
             # Scan PDF for sensitive data using scanner from backends
+            scan_start_time = time.time()
             findings = backends.scanner.scan_pdf(temp_path)
+            scan_end_time = time.time()
+            scan_duration_ms = (scan_end_time - scan_start_time) * 1000  # Convert to milliseconds
             
             # Update findings with correct document ID
             for finding in findings:
@@ -90,10 +99,10 @@ class DocumentProcessor:
                 DocumentStatus.COMPLETED,
             )
             
-            # Record scan metrics
+            # Record scan metrics with actual timing
             scan_metric = Metric.create(
                 operation="scan",
-                duration_ms=0.0,  # TODO: Add timing in Phase 8
+                duration_ms=scan_duration_ms,
                 document_id=document.id,
                 metadata={
                     "findings_count": len(findings),
@@ -116,10 +125,14 @@ class DocumentProcessor:
             if temp_path and Path(temp_path).exists():
                 Path(temp_path).unlink()
         
-        # Record upload metrics
+        # Calculate total upload duration
+        upload_end_time = time.time()
+        upload_duration_ms = (upload_end_time - upload_start_time) * 1000  # Convert to milliseconds
+        
+        # Record upload metrics with actual timing
         upload_metric = Metric.create(
             operation="upload",
-            duration_ms=0.0,  # TODO: Add timing in Phase 8
+            duration_ms=upload_duration_ms,
             document_id=document.id,
             metadata={"file_size": file_size, "filename": filename},
         )

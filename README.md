@@ -246,3 +246,72 @@ The application will automatically use ClickHouse based on your `.env` configura
 
 - **Testing**: pytest, httpx
 - **Code Quality**: ruff (linting and formatting)
+
+## Performance Metrics & Monitoring
+
+The service includes comprehensive performance monitoring capabilities:
+
+### Metrics Endpoint (`/metrics`)
+
+Returns average processing times by operation type with optional filtering:
+
+```bash
+# Get all metrics
+curl http://localhost:8000/metrics
+
+# Filter by operation type
+curl "http://localhost:8000/metrics?operation=upload"
+curl "http://localhost:8000/metrics?operation=scan"
+
+# Filter by time range
+curl "http://localhost:8000/metrics?start_time=2025-10-27T19:00:00Z"
+
+# Combined filters
+curl "http://localhost:8000/metrics?operation=upload&start_time=2025-10-27T19:00:00Z"
+```
+
+### Response Format
+
+```json
+{
+  "metrics": {
+    "upload": {
+      "average_duration_ms": 1.19,
+      "operation": "upload"
+    },
+    "scan": {
+      "average_duration_ms": 0.72,
+      "operation": "scan"
+    }
+  },
+  "filters": {
+    "operation": null,
+    "start_time": null,
+    "end_time": null
+  },
+  "timestamp": "2025-10-27T20:25:28.476760"
+}
+```
+
+### Testing Metrics
+
+Run the comprehensive metrics test suite:
+
+```bash
+# Test all metrics functionality
+bash scripts/test_metrics.sh
+
+# Run complete test suite (includes metrics)
+bash scripts/run_all_tests.sh
+```
+
+## Project Status
+
+**Phase 8: Performance Metrics Enhancement** ✅ **COMPLETED**
+
+- ✅ Metrics collection with precise timing
+- ✅ `/metrics` endpoint with filtering capabilities
+- ✅ Operation-specific performance tracking
+- ✅ Time range filtering support
+- ✅ Comprehensive test coverage
+- ✅ Error handling for invalid parameters

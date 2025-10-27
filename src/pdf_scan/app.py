@@ -213,3 +213,91 @@ async def get_all_findings(
         },
     }
 
+
+@app.get("/metrics")
+async def get_metrics(
+    operation: Annotated[Optional[str], Query(description="Filter by operation type (upload, scan)")] = None,
+    start_time: Annotated[Optional[str], Query(description="Start time filter (ISO format)")] = None,
+    end_time: Annotated[Optional[str], Query(description="End time filter (ISO format)")] = None,
+):
+    """
+    Get performance metrics and analytics.
+    
+    Returns average processing times by operation type with optional filtering.
+    
+    Args:
+        operation: Optional filter by operation type (upload, scan)
+        start_time: Optional start time filter in ISO format
+        end_time: Optional end time filter in ISO format
+        
+    Returns:
+        JSON with metrics summary including average durations
+    """
+    from datetime import datetime
+    
+    # Parse time filters if provided
+    parsed_start_time = None
+    parsed_end_time = None
+    
+    if start_time:
+        try:
+            parsed_start_time = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "error": "Invalid start_time format. Use ISO format (e.g., 2025-10-27T20:00:00Z)",
+                    "code": "INVALID_TIME_FORMAT",
+                },
+            )
+    
+    if end_time:
+        try:
+            parsed_end_time = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "error": "Invalid end_time format. Use ISO format (e.g., 2025-10-27T20:00:00Z)",
+                    "code": "INVALID_TIME_FORMAT",
+                },
+            )
+    
+    # Get backends and retrieve metrics
+    backends = await get_backends()
+    
+    # Get average durations for each operation type
+    operations = ["upload", "scan"]
+    if operation:
+        operations = [operation]
+    
+    metrics_summary = {}
+    for op in operations:
+        try:
+            avg_duration = await backends.metrics.get_average_duration(
+                operation=op,
+                start_time=parsed_start_time,
+                end_time=parsed_end_time,
+            )
+            metrics_summary[op] = {
+                "average_duration_ms": avg_duration,
+                "operation": op,
+            }
+        except Exception as e:
+            # If there's an error getting metrics for one operation, continue with others
+            metrics_summary[op] = {
+                "average_duration_ms": 0.0,
+                "operation": op,
+                "error": str(e),
+            }
+    
+    return {
+        "metrics": metrics_summary,
+        "filters": {
+            "operation": operation,
+            "start_time": start_time,
+            "end_time": end_time,
+        },
+        "timestamp": datetime.now().isoformat(),
+    }
+

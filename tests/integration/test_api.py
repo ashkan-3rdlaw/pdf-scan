@@ -333,3 +333,111 @@ async def test_get_all_findings_with_type_filter(client):
     email_findings = [f for f in data["findings"] if f["type"] == "email"]
     assert len(email_findings) >= 1
 
+
+@pytest.mark.asyncio
+async def test_metrics_endpoint_empty(client):
+    """Test metrics endpoint structure."""
+    response = await client.get("/metrics")
+    
+    assert response.status_code == 200
+    data = response.json()
+    
+    # Should have metrics structure
+    assert "metrics" in data
+    assert "filters" in data
+    assert "timestamp" in data
+    
+    # Should have both operation types
+    assert "upload" in data["metrics"]
+    assert "scan" in data["metrics"]
+    
+    # Should have operation field
+    assert data["metrics"]["upload"]["operation"] == "upload"
+    assert data["metrics"]["scan"]["operation"] == "scan"
+    
+    # Averages should be non-negative (may be 0.0 if no data or > 0.0 if data exists)
+    assert data["metrics"]["upload"]["average_duration_ms"] >= 0.0
+    assert data["metrics"]["scan"]["average_duration_ms"] >= 0.0
+
+
+@pytest.mark.asyncio
+async def test_metrics_endpoint_with_data(client):
+    """Test metrics endpoint after uploading files."""
+    # Upload a file to generate metrics
+    with open("tests/fixtures/sample_with_pii.pdf", "rb") as f:
+        pdf_content = f.read()
+    
+    files = {"file": ("metrics_test.pdf", io.BytesIO(pdf_content), "application/pdf")}
+    upload_response = await client.post("/upload", files=files)
+    assert upload_response.status_code == 200
+    
+    # Get metrics
+    response = await client.get("/metrics")
+    assert response.status_code == 200
+    
+    data = response.json()
+    
+    # Should have metrics structure
+    assert "metrics" in data
+    assert "filters" in data
+    assert "timestamp" in data
+    
+    # Should have both operation types
+    assert "upload" in data["metrics"]
+    assert "scan" in data["metrics"]
+    
+    # Should have non-zero averages after processing
+    assert data["metrics"]["upload"]["average_duration_ms"] > 0.0
+    assert data["metrics"]["scan"]["average_duration_ms"] > 0.0
+    
+    # Should have operation field
+    assert data["metrics"]["upload"]["operation"] == "upload"
+    assert data["metrics"]["scan"]["operation"] == "scan"
+
+
+@pytest.mark.asyncio
+async def test_metrics_endpoint_filter_by_operation(client):
+    """Test metrics endpoint with operation filter."""
+    # Upload a file to generate metrics
+    with open("tests/fixtures/sample_with_pii.pdf", "rb") as f:
+        pdf_content = f.read()
+    
+    files = {"file": ("filter_test.pdf", io.BytesIO(pdf_content), "application/pdf")}
+    await client.post("/upload", files=files)
+    
+    # Test filtering by upload operation
+    response = await client.get("/metrics?operation=upload")
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert "upload" in data["metrics"]
+    assert "scan" not in data["metrics"]
+    assert data["filters"]["operation"] == "upload"
+    
+    # Test filtering by scan operation
+    response = await client.get("/metrics?operation=scan")
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert "scan" in data["metrics"]
+    assert "upload" not in data["metrics"]
+    assert data["filters"]["operation"] == "scan"
+
+
+@pytest.mark.asyncio
+async def test_metrics_endpoint_invalid_time_format(client):
+    """Test metrics endpoint with invalid time format."""
+    response = await client.get("/metrics?start_time=invalid")
+    assert response.status_code == 400
+    
+    data = response.json()
+    assert data["detail"]["code"] == "INVALID_TIME_FORMAT"
+    assert "Invalid start_time format" in data["detail"]["error"]
+    
+    response = await client.get("/metrics?end_time=invalid")
+    assert response.status_code == 400
+    
+    data = response.json()
+    assert data["detail"]["code"] == "INVALID_TIME_FORMAT"
+    assert "Invalid end_time format" in data["detail"]["error"]
+

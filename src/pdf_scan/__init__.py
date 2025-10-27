@@ -1,2 +1,3 @@
-def main() -> None:
-    print("Hello from pdf-scan!")
+from pdf_scan.main import main
+
+__all__ = ["main"]

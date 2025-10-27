@@ -42,33 +42,79 @@ A web service that accepts PDF uploads, scans them for sensitive information, st
 **Success Criteria**: ✅ Schema documented and reviewed for Clickhouse compatibility
 
 **Deliverables**:
-- `src/pdf_scan/models.py`: Python data models using dataclasses
+- `src/pdf_scan/models/entities.py`: Database entity definitions using dataclasses
+  - `Document`: Upload metadata with status tracking
+  - `Finding`: Sensitive data findings with location and confidence
+  - `Metric`: Performance metrics with operation tracking
+  - `DocumentStatus`: Enum for document processing states
+  - `FindingType`: Enum for sensitive data types
+- `src/pdf_scan/models/__init__.py`: Public API exports for models module
+- `tests/unit/models/test_models.py`: Unit tests for data models (4 tests passing)
 - `docs/schema.md`: Clickhouse schema with tables, indexes, and query patterns
 - `docs/api.md`: Complete API contracts for all endpoints
+
+**Implementation Notes**:
+- Models organized in dedicated `models/` directory for better structure
+- Used `StrEnum` for type-safe string enums (DocumentStatus, FindingType)
+- Used timezone-aware datetimes with `datetime.now(UTC)` for consistency
+- Factory methods (`create()`) provide clean instantiation with auto-generated IDs
+- All entities use UUID for primary keys to enable distributed systems
 
 ---
 
 ### Phase 2: Web Server with Upload Endpoint
-**Status**: 🔴 Not Started
+**Status**: 🟢 Completed (2025-10-27)
 
 **Tasks**:
-- [ ] Choose web framework (FastAPI recommended for async + auto docs)
-- [ ] Implement `/upload` endpoint:
+- [x] Choose web framework (FastAPI recommended for async + auto docs)
+- [x] Implement `/upload` endpoint:
   - Accept multipart/form-data with PDF file
   - Validate file type (PDF only)
   - Validate file size (set reasonable limit, e.g., 10MB)
   - Generate unique document ID
   - Save to temp storage
   - Return document ID and upload status
-- [ ] Basic error handling:
+- [x] Basic error handling:
   - Invalid file type
   - File too large
   - Malformed requests
-- [ ] Add metric collection hooks (timing, counters)
-- [ ] Create basic health check endpoint (`/health`)
-- [ ] Manual testing with curl/Postman
+- [ ] Add metric collection hooks (timing, counters) - Deferred to Phase 8
+- [x] Create basic health check endpoint (`/health`)
+- [x] Manual testing with curl/Postman
 
-**Success Criteria**: Can upload valid PDF, get document ID back; invalid uploads rejected with proper errors
+**Success Criteria**: ✅ Can upload valid PDF, get document ID back; invalid uploads rejected with proper errors
+
+**Deliverables**:
+- `src/pdf_scan/app.py`: FastAPI application with /upload and /health endpoints
+- `src/pdf_scan/main.py`: Server entry point with uvicorn runner
+- `src/pdf_scan/__init__.py`: Package exports for public API
+- `src/pdf_scan/validation/file_validator.py`: File validation logic
+  - `FileValidator`: Static validation methods (extension, content type, size)
+  - `ValidationError`: Custom exception for validation failures
+- `src/pdf_scan/validation/__init__.py`: Validation module exports
+- `src/pdf_scan/processing/document_processor.py`: Document processing logic
+  - `DocumentProcessor`: Handles document creation and temporary storage
+- `src/pdf_scan/processing/__init__.py`: Processing module exports
+- `tests/integration/test_api.py`: API integration tests (8 tests passing)
+- `tests/unit/validation/test_file_validator.py`: Validation unit tests (20 tests passing)
+- `tests/fixtures/sample_with_pii.pdf`: Static test PDF containing PII
+- `tests/fixtures/sample_without_pii.pdf`: Static test PDF without PII
+- `tests/fixtures/README.md`: Test fixture documentation
+- `scripts/test_health.sh`: Health check testing script
+- `scripts/test_upload.sh`: Upload testing script
+- `scripts/test_invalid_file.sh`: Validation testing script
+- `scripts/README.md`: Testing documentation
+
+**Implementation Notes**:
+- Modular architecture with separate `validation` and `processing` modules for better testability
+- `FileValidator` is framework-agnostic; FastAPI-specific error handling in `app.py`
+- Static test PDFs replace generated ones for consistent, reliable testing
+- Tests organized into `unit/` and `integration/` directories mirroring source structure
+- Comprehensive validation: file type (PDF only), size (max 10MB), proper error codes
+- Metric collection hooks deferred to Phase 8 (will be added when metric storage is implemented)
+- Server runs on port 8000 with auto-reload for development
+- OpenAPI docs available at /docs and /redoc
+- Run server with: `uv run pdf-scan`
 
 ---
 
@@ -293,7 +339,7 @@ A web service that accepts PDF uploads, scans them for sensitive information, st
 |-------|--------|-----------------|
 | 0. Repository Initialization | 🟢 Completed | 2025-10-27 |
 | 1. Data Models & Schema | 🟢 Completed | 2025-10-27 |
-| 2. Web Server & Upload | 🔴 Not Started | - |
+| 2. Web Server & Upload | 🟢 Completed | 2025-10-27 |
 | 3. Database Interface (In-Memory) | 🔴 Not Started | - |
 | 4. PDF Scanner Interface (Regex) | 🔴 Not Started | - |
 | 5. Integration & E2E Testing | 🔴 Not Started | - |

@@ -1,4 +1,4 @@
-"""Data models for the PDF scan service."""
+"""Database entities for the PDF scan service."""
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime

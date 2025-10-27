@@ -1,0 +1,17 @@
+[project]
+name = "pdf-scan"
+version = "0.1.0"
+description = "PDF scanning service for detecting sensitive information"
+readme = "README.md"
+authors = [
+    { name = "Ashkan Aghdai", email = "ashkan.aghdai+2@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+pdf-scan = "pdf_scan:main"
+
+[build-system]
+requires = ["uv_build>=0.9.0,<0.10.0"]
+build-backend = "uv_build"

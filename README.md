@@ -305,6 +305,58 @@ bash scripts/test_metrics.sh
 bash scripts/run_all_tests.sh
 ```
 
+## Cloud Deployment
+
+### Quick Start on Render.com
+
+Deploy your PDF scan service to the cloud in minutes:
+
+1. **Push to Git Repository**
+   ```bash
+   git add requirements.txt render.yaml
+   git commit -m "Add Render deployment configuration"
+   git push origin main
+   ```
+
+2. **Deploy on Render**
+   - Sign up at [render.com](https://render.com/)
+   - Connect your Git repository
+   - Create new Web Service
+   - Use these settings:
+     - **Build Command**: `pip install -r requirements.txt`
+     - **Start Command**: `uvicorn src.pdf_scan.app:app --host 0.0.0.0 --port $PORT`
+     - **Environment Variables**:
+       ```bash
+       DATABASE_BACKEND=memory
+       APP_HOST=0.0.0.0
+       APP_PORT=$PORT
+       APP_RELOAD=false
+       ```
+
+3. **Test Your Deployment**
+   ```bash
+   # Test your deployed service
+   ./scripts/test_cloud_deployment.sh https://your-service-name.onrender.com
+   ```
+
+### Deployment Features
+
+- ✅ **Zero Configuration**: Works out of the box with in-memory backend
+- ✅ **HTTPS**: Automatic SSL certificates
+- ✅ **Zero Downtime**: Automatic deploys
+- ✅ **Free Tier**: Available for testing and demos
+- ✅ **Health Checks**: Built-in monitoring
+- ✅ **API Docs**: Available at `/docs` and `/redoc`
+
+### Environment Options
+
+| Backend | Use Case | Persistence | External Dependencies |
+|---------|----------|-------------|----------------------|
+| `memory` | Quick start, demos | No (data lost on restart) | None |
+| `clickhouse` | Production | Yes | External ClickHouse service |
+
+See [docs/deployment.md](docs/deployment.md) for detailed deployment guide.
+
 ## Project Status
 
 **Phase 8: Performance Metrics Enhancement** ✅ **COMPLETED**
@@ -315,3 +367,10 @@ bash scripts/run_all_tests.sh
 - ✅ Time range filtering support
 - ✅ Comprehensive test coverage
 - ✅ Error handling for invalid parameters
+
+**Phase 9: Cloud Deployment on Render.com** 🔴 **IN PROGRESS**
+
+- ✅ Deployment configuration files created
+- ✅ Infrastructure as Code setup
+- ✅ Cloud testing scripts
+- 🔴 Service deployment and testing

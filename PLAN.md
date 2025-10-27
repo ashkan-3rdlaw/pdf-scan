@@ -511,6 +511,66 @@ A web service that accepts PDF uploads, scans them for sensitive information, st
 
 ---
 
+### Phase 9: Cloud Deployment on Render.com
+**Status**: 🟡 In Progress
+
+**Tasks**:
+- [x] Create `requirements.txt` for Render compatibility (since Render doesn't natively support `uv`)
+- [x] Create `render.yaml` for Infrastructure as Code deployment
+- [x] Configure environment variables for in-memory backend
+- [x] Set up Render web service configuration:
+  - Build command: `pip install -r requirements.txt`
+  - Start command: `uvicorn src.pdf_scan.app:app --host 0.0.0.0 --port $PORT`
+  - Environment: Python 3
+- [x] Create comprehensive testing scripts:
+  - Cloud deployment testing script
+  - Integration with existing test suite
+- [x] Document deployment process
+- [ ] Deploy service on Render.com and test all endpoints
+- [ ] Set up monitoring and alerts
+
+**Success Criteria**: ✅ Service is live on Render.com with in-memory backend; all endpoints functional
+
+**Quick Start Approach**:
+- Use in-memory backend (`DATABASE_BACKEND=memory`) for simplicity
+- No external database dependencies
+- Fast deployment and testing
+- Can upgrade to ClickHouse later
+
+**Deliverables**:
+- ✅ `requirements.txt`: Python dependencies for Render deployment
+- ✅ `render.yaml`: Infrastructure as Code configuration
+- ✅ `docs/deployment.md`: Comprehensive deployment guide for Render.com
+- ✅ Updated `README.md`: Cloud deployment instructions
+- ✅ `scripts/test_cloud_deployment.sh`: Manual testing script for cloud deployment
+- ✅ Updated `scripts/README.md`: Cloud testing documentation
+- ✅ Updated `scripts/run_all_tests.sh`: Cloud testing integration
+
+**Implementation Notes**:
+- **In-Memory Backend**: Perfect for quick start - no external dependencies
+- **Port Configuration**: Render uses `$PORT` environment variable
+- **File System**: Ephemeral (data lost on restart) - acceptable for demo/testing
+- **Free Tier**: 15-minute sleep after inactivity - good for testing
+- **Zero Downtime**: Automatic deploys with zero downtime
+- **HTTPS**: Automatic SSL certificates
+- **Custom Domain**: Can be added later if needed
+
+**Environment Variables**:
+```bash
+DATABASE_BACKEND=memory
+APP_HOST=0.0.0.0
+APP_PORT=$PORT
+APP_RELOAD=false
+```
+
+**Future Upgrades**:
+- Phase 9.1: Add ClickHouse backend with external database
+- Phase 9.2: Add custom domain and SSL
+- Phase 9.3: Configure autoscaling and monitoring
+- Phase 9.4: Add persistent storage for production use
+
+---
+
 ## Future Enhancements (Out of Scope for v1)
 
 - [ ] Async processing with job queue (Celery, RQ)
@@ -566,6 +626,7 @@ A web service that accepts PDF uploads, scans them for sensitive information, st
 | 6. Findings Endpoint | 🟢 Completed | 2025-10-27 |
 | 7. Clickhouse Implementation | 🟢 Completed | 2025-10-27 |
 | 8. Performance Metrics | 🟢 Completed | 2025-10-27 |
+| 9. Cloud Deployment on Render.com | 🟡 In Progress | - |
 
 **Legend**:
 - 🔴 Not Started

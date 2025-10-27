@@ -1,0 +1,18 @@
+# PDF Scan Service Dependencies
+# Generated from pyproject.toml for Render.com deployment
+
+# Core dependencies
+asynch>=0.2.3
+fastapi>=0.120.0
+pypdf>=5.1.0
+python-dotenv>=1.0.0
+python-multipart>=0.0.20
+uvicorn>=0.38.0
+
+# ClickHouse support (optional - only used when DATABASE_BACKEND=clickhouse)
+clickhouse-connect>=0.8.14
+
+# Development dependencies (not needed for production)
+# httpx>=0.28.1
+# pytest>=8.4.2
+# pytest-asyncio>=0.24.0

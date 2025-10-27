@@ -1,0 +1,34 @@
+# Render.com Infrastructure as Code Configuration
+# PDF Scan Service Deployment
+
+services:
+  - type: web
+    name: pdf-scan-service
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn src.pdf_scan.app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_BACKEND
+        value: memory
+      - key: APP_HOST
+        value: 0.0.0.0
+      - key: APP_PORT
+        value: $PORT
+      - key: APP_RELOAD
+        value: false
+    # Optional: Add health check
+    healthCheckPath: /health
+    # Optional: Add custom domain
+    # customDomains:
+    #   - your-domain.com
+    # Optional: Add persistent disk (disables zero-downtime deploys)
+    # disk:
+    #   name: pdf-scan-storage
+    #   mountPath: /data
+    #   sizeGB: 1
+
+# Optional: Add managed database for future ClickHouse integration
+# databases:
+#   - name: pdf-scan-clickhouse
+#     plan: free
+#     # Note: Render doesn't have ClickHouse, would need external service

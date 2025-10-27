@@ -182,6 +182,44 @@ This comprehensive test script:
 
 ---
 
+### 5. Cloud Deployment Testing
+
+Test your service deployed on Render.com or other cloud platforms:
+
+```bash
+./scripts/test_cloud_deployment.sh [service-url]
+```
+
+**Default:** Uses `https://pdf-scan-service.onrender.com` if no URL specified
+
+**Examples:**
+```bash
+# Test default Render service
+./scripts/test_cloud_deployment.sh
+
+# Test custom service URL
+./scripts/test_cloud_deployment.sh https://my-pdf-scan.onrender.com
+
+# Test local service (for comparison)
+./scripts/test_cloud_deployment.sh http://localhost:8000
+```
+
+This comprehensive test script:
+1. Tests health endpoint
+2. Uploads PDF without PII
+3. Uploads PDF with PII
+4. Tests findings endpoints
+5. Tests metrics endpoint
+6. Tests pagination
+7. Tests error handling
+8. Tests invalid file uploads
+
+**Expected:** All endpoints return appropriate responses with colored output
+
+**Note:** Free tier services may sleep after 15 minutes of inactivity. First request after sleep may take longer to respond.
+
+---
+
 ## API Documentation
 
 Once the server is running, visit:

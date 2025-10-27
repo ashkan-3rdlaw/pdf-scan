@@ -20,14 +20,35 @@ echo -e "${BLUE}║     PDF Scan Service - Manual Test Suite Runner           �
 echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# Check if server is running
-echo -e "${YELLOW}Checking if server is running...${NC}"
-if ! curl -s -f "http://localhost:8000/health" > /dev/null 2>&1; then
-    echo -e "${RED}✗ Server is not running on localhost:8000${NC}"
-    echo "Please start the server with: uv run pdf-scan"
-    exit 1
+# Show usage if help requested
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    echo "Usage: $0 [--cloud|-c] [service-url]"
+    echo ""
+    echo "Options:"
+    echo "  --cloud, -c    Include cloud deployment test"
+    echo "  service-url    URL of deployed service (for cloud test)"
+    echo "  --help, -h     Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                    # Run local tests only"
+    echo "  $0 --cloud            # Run local + cloud tests (default URL)"
+    echo "  $0 --cloud https://my-service.onrender.com  # Run local + cloud tests"
+    echo ""
+    exit 0
 fi
-echo -e "${GREEN}✓ Server is running${NC}"
+
+# Check if server is running (skip for cloud-only mode)
+if [ "$1" != "--cloud-only" ]; then
+    echo -e "${YELLOW}Checking if server is running...${NC}"
+    if ! curl -s -f "http://localhost:8000/health" > /dev/null 2>&1; then
+        echo -e "${RED}✗ Server is not running on localhost:8000${NC}"
+        echo "Please start the server with: uv run pdf-scan"
+        echo ""
+        echo "Or run cloud tests only with: $0 --cloud-only"
+        exit 1
+    fi
+    echo -e "${GREEN}✓ Server is running${NC}"
+fi
 echo ""
 
 # Counter for test results
@@ -83,12 +104,37 @@ echo ""
 # Run metrics test as the final test
 run_test "test_metrics.sh" "Metrics Endpoint Test"
 
+# Optional: Cloud deployment test
+if [ "$1" = "--cloud" ] || [ "$1" = "-c" ]; then
+    echo ""
+    echo -e "${YELLOW}🌐 Running cloud deployment test...${NC}"
+    echo -e "${YELLOW}Note: This requires a deployed service URL${NC}"
+    echo ""
+    
+    # Check if service URL provided
+    if [ -n "$2" ]; then
+        SERVICE_URL="$2"
+    else
+        SERVICE_URL="https://pdf-scan-service.onrender.com"
+        echo -e "${YELLOW}Using default service URL: $SERVICE_URL${NC}"
+        echo -e "${YELLOW}To test a different service, use: $0 --cloud <service-url>${NC}"
+    fi
+    
+    echo ""
+    run_test "test_cloud_deployment.sh $SERVICE_URL" "Cloud Deployment Test"
+fi
+
 # Print summary
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║                    TEST SUMMARY                            ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "Total Tests: $((PASSED + FAILED)) (8 test scripts)"
+
+if [ "$1" = "--cloud" ] || [ "$1" = "-c" ]; then
+    echo -e "Total Tests: $((PASSED + FAILED)) (9 test scripts including cloud test)"
+else
+    echo -e "Total Tests: $((PASSED + FAILED)) (8 test scripts)"
+fi
 echo -e "${GREEN}Passed: $PASSED${NC}"
 if [ $FAILED -gt 0 ]; then
     echo -e "${RED}Failed: $FAILED${NC}"

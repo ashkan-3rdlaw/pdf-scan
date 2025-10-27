@@ -16,7 +16,7 @@ class InMemoryMetricsRepository(MetricsRepository):
         """Initialize with empty storage."""
         self._metrics: dict[UUID, Metric] = {}
 
-    def store_metric(self, metric: Metric) -> None:
+    async def store_metric(self, metric: Metric) -> None:
         """
         Store a metric record.
 
@@ -25,7 +25,7 @@ class InMemoryMetricsRepository(MetricsRepository):
         """
         self._metrics[metric.id] = metric
 
-    def get_metrics(
+    async def get_metrics(
         self,
         operation: Optional[str] = None,
         document_id: Optional[UUID] = None,
@@ -73,7 +73,7 @@ class InMemoryMetricsRepository(MetricsRepository):
         )
         return sorted_metrics[offset : offset + limit]
 
-    def get_average_duration(
+    async def get_average_duration(
         self,
         operation: str,
         start_time: Optional[datetime] = None,

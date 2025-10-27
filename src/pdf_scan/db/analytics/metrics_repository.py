@@ -12,7 +12,7 @@ class MetricsRepository(ABC):
     """Abstract interface for metrics storage and retrieval."""
 
     @abstractmethod
-    def store_metric(self, metric: Metric) -> None:
+    async def store_metric(self, metric: Metric) -> None:
         """
         Store a metric record.
 
@@ -22,7 +22,7 @@ class MetricsRepository(ABC):
         pass
 
     @abstractmethod
-    def get_metrics(
+    async def get_metrics(
         self,
         operation: Optional[str] = None,
         document_id: Optional[UUID] = None,
@@ -48,7 +48,7 @@ class MetricsRepository(ABC):
         pass
 
     @abstractmethod
-    def get_average_duration(
+    async def get_average_duration(
         self,
         operation: str,
         start_time: Optional[datetime] = None,

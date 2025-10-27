@@ -15,7 +15,7 @@ class InMemoryFindingRepository(FindingRepository):
         """Initialize with empty storage."""
         self._findings: dict[UUID, Finding] = {}
 
-    def store_finding(self, finding: Finding) -> None:
+    async def store_finding(self, finding: Finding) -> None:
         """
         Store a finding record.
 
@@ -24,7 +24,7 @@ class InMemoryFindingRepository(FindingRepository):
         """
         self._findings[finding.id] = finding
 
-    def get_findings(self, document_id: UUID) -> list[Finding]:
+    async def get_findings(self, document_id: UUID) -> list[Finding]:
         """
         Retrieve all findings for a specific document.
 
@@ -40,7 +40,7 @@ class InMemoryFindingRepository(FindingRepository):
         # Sort by confidence descending (highest confidence first)
         return sorted(document_findings, key=lambda f: f.confidence, reverse=True)
 
-    def get_all_findings(
+    async def get_all_findings(
         self, limit: int = 100, offset: int = 0, finding_type: Optional[FindingType] = None
     ) -> list[Finding]:
         """
@@ -66,7 +66,7 @@ class InMemoryFindingRepository(FindingRepository):
         sorted_findings = sorted(findings, key=lambda f: f.confidence, reverse=True)
         return sorted_findings[offset : offset + limit]
 
-    def count_findings(self, document_id: Optional[UUID] = None) -> int:
+    async def count_findings(self, document_id: Optional[UUID] = None) -> int:
         """
         Count findings, optionally filtered by document.
 

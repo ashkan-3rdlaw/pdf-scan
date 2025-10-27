@@ -1,26 +1,43 @@
 """Tests for FastAPI endpoints."""
 
 import io
+import os
 
 import pytest
-from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
 
 from pdf_scan.app import app, get_backends
 from pdf_scan.db import BackendFactory
 
+# Set test environment before importing anything else
+os.environ["DATABASE_BACKEND"] = "memory"
+
 # Create a single shared backends instance for all tests
 # This ensures documents and findings persist across test requests
-shared_backends = BackendFactory.create_backends()
+# Use in-memory backend for tests regardless of environment configuration
+shared_backends = BackendFactory.create_backends(backend="memory")
 
 # Override the dependency to use shared backends
-app.dependency_overrides[get_backends] = lambda: shared_backends
+async def get_test_backends():
+    return shared_backends
 
-client = TestClient(app)
+app.dependency_overrides[get_backends] = get_test_backends
 
 
-def test_health_endpoint():
+@pytest.fixture
+async def client():
+    """Create an async HTTP client for testing."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test"
+    ) as ac:
+        yield ac
+
+
+@pytest.mark.asyncio
+async def test_health_endpoint(client):
     """Test the health check endpoint."""
-    response = client.get("/health")
+    response = await client.get("/health")
     
     assert response.status_code == 200
     data = response.json()
@@ -28,7 +45,8 @@ def test_health_endpoint():
     assert data["version"] == "0.1.0"
 
 
-def test_upload_valid_pdf():
+@pytest.mark.asyncio
+async def test_upload_valid_pdf(client):
     """Test uploading a valid PDF file."""
     # Create a minimal valid PDF
     pdf_content = b"""%PDF-1.4
@@ -51,7 +69,7 @@ startxref
 %%EOF"""
     
     files = {"file": ("test.pdf", io.BytesIO(pdf_content), "application/pdf")}
-    response = client.post("/upload", files=files)
+    response = await client.post("/upload", files=files)
     
     assert response.status_code == 200
     data = response.json()
@@ -64,84 +82,92 @@ startxref
     assert data["findings_count"] == 0  # Test PDF has no PII
 
 
-def test_upload_no_file():
+@pytest.mark.asyncio
+async def test_upload_no_file(client):
     """Test upload endpoint with no file."""
-    response = client.post("/upload")
+    response = await client.post("/upload")
     
     assert response.status_code == 422  # FastAPI validation error
 
 
-def test_upload_empty_file():
+@pytest.mark.asyncio
+async def test_upload_empty_file(client):
     """Test uploading an empty file."""
     files = {"file": ("test.pdf", io.BytesIO(b""), "application/pdf")}
-    response = client.post("/upload", files=files)
+    response = await client.post("/upload", files=files)
     
     assert response.status_code == 400
     data = response.json()
     assert data["detail"]["code"] == "EMPTY_FILE"
 
 
-def test_upload_invalid_extension():
+@pytest.mark.asyncio
+async def test_upload_invalid_extension(client):
     """Test uploading a non-PDF file."""
     files = {"file": ("test.txt", io.BytesIO(b"test content"), "text/plain")}
-    response = client.post("/upload", files=files)
+    response = await client.post("/upload", files=files)
     
     assert response.status_code == 400
     data = response.json()
     assert data["detail"]["code"] == "INVALID_FILE_TYPE"
 
 
-def test_upload_file_too_large():
+@pytest.mark.asyncio
+async def test_upload_file_too_large(client):
     """Test uploading a file that exceeds size limit."""
     # Create a file larger than 10MB
     large_content = b"x" * (11 * 1024 * 1024)  # 11MB
     files = {"file": ("large.pdf", io.BytesIO(large_content), "application/pdf")}
-    response = client.post("/upload", files=files)
+    response = await client.post("/upload", files=files)
     
     assert response.status_code == 413
     data = response.json()
     assert data["detail"]["code"] == "FILE_TOO_LARGE"
 
 
-def test_upload_pdf_with_different_content_type():
+@pytest.mark.asyncio
+async def test_upload_pdf_with_different_content_type(client):
     """Test that PDF with wrong content type is rejected."""
     pdf_content = b"%PDF-1.4\ntest"
     files = {"file": ("test.pdf", io.BytesIO(pdf_content), "text/plain")}
-    response = client.post("/upload", files=files)
+    response = await client.post("/upload", files=files)
     
     assert response.status_code == 400
     data = response.json()
     assert data["detail"]["code"] == "INVALID_CONTENT_TYPE"
 
 
-def test_openapi_docs_available():
+@pytest.mark.asyncio
+async def test_openapi_docs_available(client):
     """Test that OpenAPI documentation is available."""
-    response = client.get("/docs")
+    response = await client.get("/docs")
     assert response.status_code == 200
     
-    response = client.get("/openapi.json")
+    response = await client.get("/openapi.json")
     assert response.status_code == 200
 
 
 # Findings endpoint tests
-def test_get_findings_for_nonexistent_document():
+@pytest.mark.asyncio
+async def test_get_findings_for_nonexistent_document(client):
     """Test getting findings for a document that doesn't exist."""
     fake_uuid = "12345678-1234-5678-1234-567812345678"
-    response = client.get(f"/findings/{fake_uuid}")
+    response = await client.get(f"/findings/{fake_uuid}")
     
     assert response.status_code == 404
     data = response.json()
     assert data["detail"]["code"] == "DOCUMENT_NOT_FOUND"
 
 
-def test_get_findings_for_document_with_pii():
+@pytest.mark.asyncio
+async def test_get_findings_for_document_with_pii(client):
     """Test getting findings for a document with PII."""
     # First, upload a PDF with PII (using sample_with_pii.pdf)
     with open("tests/fixtures/sample_with_pii.pdf", "rb") as f:
         pdf_content = f.read()
     
     files = {"file": ("sample_with_pii.pdf", io.BytesIO(pdf_content), "application/pdf")}
-    upload_response = client.post("/upload", files=files)
+    upload_response = await client.post("/upload", files=files)
     assert upload_response.status_code == 200
     
     upload_data = upload_response.json()
@@ -149,7 +175,7 @@ def test_get_findings_for_document_with_pii():
     assert upload_data["findings_count"] == 2  # Should have 2 findings
     
     # Now get findings for this document
-    findings_response = client.get(f"/findings/{document_id}")
+    findings_response = await client.get(f"/findings/{document_id}")
     assert findings_response.status_code == 200
     
     findings_data = findings_response.json()
@@ -171,14 +197,15 @@ def test_get_findings_for_document_with_pii():
         assert finding["confidence"] == 1.0
 
 
-def test_get_findings_for_document_without_pii():
+@pytest.mark.asyncio
+async def test_get_findings_for_document_without_pii(client):
     """Test getting findings for a document without PII."""
     # Upload a PDF without PII
     with open("tests/fixtures/sample_without_pii.pdf", "rb") as f:
         pdf_content = f.read()
     
     files = {"file": ("sample_without_pii.pdf", io.BytesIO(pdf_content), "application/pdf")}
-    upload_response = client.post("/upload", files=files)
+    upload_response = await client.post("/upload", files=files)
     assert upload_response.status_code == 200
     
     upload_data = upload_response.json()
@@ -186,7 +213,7 @@ def test_get_findings_for_document_without_pii():
     assert upload_data["findings_count"] == 0
     
     # Get findings for this document
-    findings_response = client.get(f"/findings/{document_id}")
+    findings_response = await client.get(f"/findings/{document_id}")
     assert findings_response.status_code == 200
     
     findings_data = findings_response.json()
@@ -196,11 +223,12 @@ def test_get_findings_for_document_without_pii():
     assert len(findings_data["findings"]) == 0
 
 
-def test_get_all_findings_empty():
+@pytest.mark.asyncio
+async def test_get_all_findings_empty(client):
     """Test getting all findings when none exist (fresh test client)."""
     # Note: In a real test, we'd need to isolate the database state
     # For now, this tests pagination structure
-    response = client.get("/findings")
+    response = await client.get("/findings")
     assert response.status_code == 200
     
     data = response.json()
@@ -212,20 +240,21 @@ def test_get_all_findings_empty():
     assert "returned" in data["pagination"]
 
 
-def test_get_all_findings_with_data():
+@pytest.mark.asyncio
+async def test_get_all_findings_with_data(client):
     """Test getting all findings when some exist."""
     # Upload a document with PII
     with open("tests/fixtures/sample_with_pii.pdf", "rb") as f:
         pdf_content = f.read()
     
     files = {"file": ("test_pii.pdf", io.BytesIO(pdf_content), "application/pdf")}
-    upload_response = client.post("/upload", files=files)
+    upload_response = await client.post("/upload", files=files)
     assert upload_response.status_code == 200
     upload_data = upload_response.json()
     document_id = upload_data["document_id"]
     
     # Get all findings
-    response = client.get("/findings")
+    response = await client.get("/findings")
     assert response.status_code == 200
     
     data = response.json()
@@ -247,10 +276,11 @@ def test_get_all_findings_with_data():
     assert found_our_findings, "Should find findings for our uploaded document"
 
 
-def test_get_all_findings_with_pagination():
+@pytest.mark.asyncio
+async def test_get_all_findings_with_pagination(client):
     """Test pagination parameters for get all findings."""
     # Test with custom limit and offset
-    response = client.get("/findings?limit=5&offset=0")
+    response = await client.get("/findings?limit=5&offset=0")
     assert response.status_code == 200
     
     data = response.json()
@@ -259,32 +289,34 @@ def test_get_all_findings_with_pagination():
     assert len(data["findings"]) <= 5
 
 
-def test_get_all_findings_with_invalid_pagination():
+@pytest.mark.asyncio
+async def test_get_all_findings_with_invalid_pagination(client):
     """Test that invalid pagination parameters are rejected."""
     # Test limit too high
-    response = client.get("/findings?limit=200")
+    response = await client.get("/findings?limit=200")
     assert response.status_code == 422  # Validation error
     
     # Test negative offset
-    response = client.get("/findings?offset=-1")
+    response = await client.get("/findings?offset=-1")
     assert response.status_code == 422
     
     # Test limit too low
-    response = client.get("/findings?limit=0")
+    response = await client.get("/findings?limit=0")
     assert response.status_code == 422
 
 
-def test_get_all_findings_with_type_filter():
+@pytest.mark.asyncio
+async def test_get_all_findings_with_type_filter(client):
     """Test filtering findings by type."""
     # Upload a document with PII
     with open("tests/fixtures/sample_with_pii.pdf", "rb") as f:
         pdf_content = f.read()
     
     files = {"file": ("filter_test.pdf", io.BytesIO(pdf_content), "application/pdf")}
-    client.post("/upload", files=files)
+    await client.post("/upload", files=files)
     
     # Get all SSN findings
-    response = client.get("/findings?finding_type=ssn")
+    response = await client.get("/findings?finding_type=ssn")
     assert response.status_code == 200
     
     data = response.json()
@@ -293,7 +325,7 @@ def test_get_all_findings_with_type_filter():
     assert len(ssn_findings) >= 1
     
     # Get all EMAIL findings
-    response = client.get("/findings?finding_type=email")
+    response = await client.get("/findings?finding_type=email")
     assert response.status_code == 200
     
     data = response.json()

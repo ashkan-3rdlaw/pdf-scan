@@ -11,7 +11,7 @@ class DocumentRepository(ABC):
     """Abstract interface for document storage and retrieval."""
 
     @abstractmethod
-    def store_document(self, document: Document) -> None:
+    async def store_document(self, document: Document) -> None:
         """
         Store a document record.
 
@@ -21,7 +21,7 @@ class DocumentRepository(ABC):
         pass
 
     @abstractmethod
-    def get_document(self, document_id: UUID) -> Optional[Document]:
+    async def get_document(self, document_id: UUID) -> Optional[Document]:
         """
         Retrieve a document by its ID.
 
@@ -34,7 +34,7 @@ class DocumentRepository(ABC):
         pass
 
     @abstractmethod
-    def update_document_status(
+    async def update_document_status(
         self, document_id: UUID, status: DocumentStatus, error_message: Optional[str] = None
     ) -> None:
         """
@@ -48,7 +48,7 @@ class DocumentRepository(ABC):
         pass
 
     @abstractmethod
-    def list_documents(self, limit: int = 100, offset: int = 0) -> list[Document]:
+    async def list_documents(self, limit: int = 100, offset: int = 0) -> list[Document]:
         """
         List documents with pagination.
 

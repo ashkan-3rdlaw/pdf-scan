@@ -1,5 +1,6 @@
 """FastAPI web server for PDF scanning service."""
 
+import asyncio
 from typing import Annotated, Optional
 from uuid import UUID
 
@@ -22,19 +23,30 @@ app = FastAPI(
 # Singleton: Create a single shared backends instance for the lifetime of the application
 # This ensures documents and findings persist across requests
 _backends_instance: Optional[Backends] = None
+_clickhouse_pool = None
 
 
-def get_backends() -> Backends:
+async def get_backends() -> Backends:
     """
     Dependency to get database backends (includes scanner).
     
-    Returns the same backends instance across all requests to maintain
-    in-memory database state. In production with Clickhouse, this would
-    still work as Clickhouse maintains its own persistence.
+    Uses environment variables to determine the backend type and configuration.
+    For ClickHouse backends, creates and manages a connection pool.
     """
-    global _backends_instance
+    global _backends_instance, _clickhouse_pool
+    
     if _backends_instance is None:
-        _backends_instance = BackendFactory.create_backends()
+        backend_type = BackendFactory.get_backend_type()
+        
+        if backend_type == "clickhouse":
+            # Create ClickHouse pool if not already created
+            if _clickhouse_pool is None:
+                _clickhouse_pool = await BackendFactory.create_clickhouse_pool()
+            _backends_instance = BackendFactory.create_backends(backend="clickhouse", pool=_clickhouse_pool)
+        else:
+            # Use in-memory backend
+            _backends_instance = BackendFactory.create_backends(backend="memory")
+    
     return _backends_instance
 
 
@@ -50,7 +62,6 @@ async def health_check():
 @app.post("/upload")
 async def upload_pdf(
     file: Annotated[UploadFile, File(description="PDF file to scan")],
-    backends: Backends = Depends(get_backends),
 ):
     """
     Upload a PDF file for scanning.
@@ -79,9 +90,10 @@ async def upload_pdf(
             },
         )
     
-    # Process the uploaded document
+    # Get backends and process the uploaded document
     try:
-        response = DocumentProcessor.process_upload(
+        backends = await get_backends()
+        response = await DocumentProcessor.process_upload(
             filename=filename,
             file_size=file_size,
             content=content,
@@ -102,7 +114,6 @@ async def upload_pdf(
 @app.get("/findings/{document_id}")
 async def get_findings_for_document(
     document_id: UUID,
-    backends: Backends = Depends(get_backends),
 ):
     """
     Get findings for a specific document.
@@ -118,8 +129,9 @@ async def get_findings_for_document(
     Raises:
         404: Document not found
     """
-    # Get document from database
-    document = backends.document.get_document(document_id)
+    # Get backends and retrieve document
+    backends = await get_backends()
+    document = await backends.document.get_document(document_id)
     if not document:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -130,7 +142,7 @@ async def get_findings_for_document(
         )
     
     # Get findings for this document
-    findings = backends.finding.get_findings(document_id)
+    findings = await backends.finding.get_findings(document_id)
     
     # Format response
     return {
@@ -156,7 +168,6 @@ async def get_all_findings(
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
     finding_type: Optional[str] = None,
-    backends: Backends = Depends(get_backends),
 ):
     """
     Get findings across all documents with pagination.
@@ -171,15 +182,16 @@ async def get_all_findings(
     Returns:
         JSON with findings list and metadata
     """
-    # Get findings from database
-    findings = backends.finding.get_all_findings(
+    # Get backends and retrieve findings
+    backends = await get_backends()
+    findings = await backends.finding.get_all_findings(
         limit=limit,
         offset=offset,
         finding_type=finding_type,
     )
     
     # Get total count for pagination metadata
-    total_count = backends.finding.count_findings(None)  # Count all findings
+    total_count = await backends.finding.count_findings(None)  # Count all findings
     
     # Format response
     return {

@@ -12,7 +12,7 @@ class DocumentProcessor:
     """Handles document processing workflow."""
 
     @staticmethod
-    def process_upload(
+    async def process_upload(
         filename: str,
         file_size: int,
         content: bytes,
@@ -50,8 +50,8 @@ class DocumentProcessor:
         )
         
         # Update status to processing
-        backends.document.store_document(document)
-        backends.document.update_document_status(
+        await backends.document.store_document(document)
+        await backends.document.update_document_status(
             document.id,
             DocumentStatus.PROCESSING,
         )
@@ -82,10 +82,10 @@ class DocumentProcessor:
                     location=finding.location,
                     confidence=finding.confidence,
                 )
-                backends.finding.store_finding(corrected_finding)
+                await backends.finding.store_finding(corrected_finding)
             
             # Update document status to completed
-            backends.document.update_document_status(
+            await backends.document.update_document_status(
                 document.id,
                 DocumentStatus.COMPLETED,
             )
@@ -100,11 +100,11 @@ class DocumentProcessor:
                     "scanner_type": backends.scanner.__class__.__name__,
                 },
             )
-            backends.metrics.store_metric(scan_metric)
+            await backends.metrics.store_metric(scan_metric)
             
         except Exception as e:
             # Update document status to failed
-            backends.document.update_document_status(
+            await backends.document.update_document_status(
                 document.id,
                 DocumentStatus.FAILED,
                 error_message=str(e),
@@ -123,10 +123,10 @@ class DocumentProcessor:
             document_id=document.id,
             metadata={"file_size": file_size, "filename": filename},
         )
-        backends.metrics.store_metric(upload_metric)
+        await backends.metrics.store_metric(upload_metric)
         
         # Get updated document to return final status
-        final_document = backends.document.get_document(document.id)
+        final_document = await backends.document.get_document(document.id)
         
         # Return document metadata
         return {

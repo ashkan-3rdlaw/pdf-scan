@@ -7,6 +7,7 @@ Manual testing scripts for the PDF scan service using curl.
 - Server must be running on `http://localhost:8000`
 - `jq` installed for JSON formatting (optional, but recommended)
 - `curl` for making HTTP requests
+- ClickHouse instance running (optional, for Phase 7+): `docker-compose up -d`
 
 ## Starting the Server
 
@@ -32,6 +33,38 @@ This will automatically:
 **Note:** Requires `jq` to be installed (`brew install jq` on macOS).
 
 ## Individual Scripts
+
+### 0. ClickHouse Health Check
+
+Test the ClickHouse database connectivity:
+
+```bash
+./scripts/test_clickhouse.sh
+```
+
+This comprehensive test script checks:
+1. HTTP interface availability (port 8123)
+2. Query execution capability
+3. Database existence (pdf_scan)
+4. Table initialization (documents, findings, metrics)
+5. Authenticated connection
+
+**Prerequisites:** ClickHouse must be running (`docker-compose up -d`)
+
+**Expected output:**
+```
+✓ HTTP interface is up (port 8123)
+✓ Query execution works
+  ClickHouse version: 24.x.x.x
+✓ Database 'pdf_scan' exists
+  ✓ Table 'documents' exists
+  ✓ Table 'findings' exists
+  ✓ Table 'metrics' exists
+✓ Authentication successful (user: pdf_user)
+✓ ClickHouse instance is fully operational
+```
+
+---
 
 ### 1. Health Check
 
@@ -170,17 +203,30 @@ Once the server is running, visit:
 ### "Permission denied"
 - Make scripts executable: `chmod +x scripts/*.sh`
 
+### "ClickHouse connection failed"
+- Start ClickHouse: `docker-compose up -d`
+- Check ClickHouse status: `docker-compose ps`
+- View ClickHouse logs: `docker-compose logs clickhouse`
+
 ---
 
 ## Testing Workflow
 
-1. **Start the server** in one terminal:
+1. **Start ClickHouse** (optional, for Phase 7+):
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Start the server** in one terminal:
    ```bash
    uv run pdf-scan
    ```
 
-2. **In another terminal**, run tests:
+3. **In another terminal**, run tests:
    ```bash
+   # Test ClickHouse (if using Phase 7+)
+   ./scripts/test_clickhouse.sh
+   
    # Run all tests at once (recommended)
    ./scripts/run_all_tests.sh
    
@@ -205,7 +251,12 @@ Once the server is running, visit:
    ./scripts/test_findings.sh
    ```
 
-3. **Check server logs** in the first terminal to see request processing
+4. **Check server logs** in the first terminal to see request processing
+
+5. **Check ClickHouse logs** (if using Phase 7+):
+   ```bash
+   docker-compose logs -f clickhouse
+   ```
 
 ---
 

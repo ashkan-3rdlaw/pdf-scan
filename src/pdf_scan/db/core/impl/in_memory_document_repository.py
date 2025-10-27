@@ -15,7 +15,7 @@ class InMemoryDocumentRepository(DocumentRepository):
         """Initialize with empty storage."""
         self._documents: dict[UUID, Document] = {}
 
-    def store_document(self, document: Document) -> None:
+    async def store_document(self, document: Document) -> None:
         """
         Store a document record.
 
@@ -24,7 +24,7 @@ class InMemoryDocumentRepository(DocumentRepository):
         """
         self._documents[document.id] = document
 
-    def get_document(self, document_id: UUID) -> Optional[Document]:
+    async def get_document(self, document_id: UUID) -> Optional[Document]:
         """
         Retrieve a document by its ID.
 
@@ -36,7 +36,7 @@ class InMemoryDocumentRepository(DocumentRepository):
         """
         return self._documents.get(document_id)
 
-    def update_document_status(
+    async def update_document_status(
         self, document_id: UUID, status: DocumentStatus, error_message: Optional[str] = None
     ) -> None:
         """
@@ -64,7 +64,7 @@ class InMemoryDocumentRepository(DocumentRepository):
             error_message=error_message,
         )
 
-    def list_documents(self, limit: int = 100, offset: int = 0) -> list[Document]:
+    async def list_documents(self, limit: int = 100, offset: int = 0) -> list[Document]:
         """
         List documents with pagination.
 

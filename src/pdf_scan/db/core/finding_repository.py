@@ -11,7 +11,7 @@ class FindingRepository(ABC):
     """Abstract interface for finding storage and retrieval."""
 
     @abstractmethod
-    def store_finding(self, finding: Finding) -> None:
+    async def store_finding(self, finding: Finding) -> None:
         """
         Store a finding record.
 
@@ -21,7 +21,7 @@ class FindingRepository(ABC):
         pass
 
     @abstractmethod
-    def get_findings(self, document_id: UUID) -> list[Finding]:
+    async def get_findings(self, document_id: UUID) -> list[Finding]:
         """
         Retrieve all findings for a specific document.
 
@@ -34,7 +34,7 @@ class FindingRepository(ABC):
         pass
 
     @abstractmethod
-    def get_all_findings(
+    async def get_all_findings(
         self, limit: int = 100, offset: int = 0, finding_type: Optional[FindingType] = None
     ) -> list[Finding]:
         """
@@ -51,7 +51,7 @@ class FindingRepository(ABC):
         pass
 
     @abstractmethod
-    def count_findings(self, document_id: Optional[UUID] = None) -> int:
+    async def count_findings(self, document_id: Optional[UUID] = None) -> int:
         """
         Count findings, optionally filtered by document.
 

@@ -59,6 +59,31 @@ Upload a PDF file for scanning:
 ./scripts/test_upload.sh my_document.pdf
 ```
 
+### 2a. Quick Upload Test
+
+For quick testing with the sample PII PDF:
+
+```bash
+./scripts/quick_upload_test.sh
+```
+
+This is a simplified version that just uploads the sample PDF and shows the JSON response.
+
+### 2b. Detailed Upload Test
+
+For comprehensive testing with health checks and detailed output:
+
+```bash
+./scripts/test_upload_pii.sh
+```
+
+This script includes:
+- Server health check
+- File validation
+- Detailed response parsing
+- Error handling
+- Colored output for better readability
+
 **Expected output:**
 ```json
 {
@@ -125,7 +150,13 @@ Once the server is running, visit:
    # Test health
    ./scripts/test_health.sh
    
-   # Upload sample PDF (uses default test PDF)
+   # Quick upload test (simple)
+   ./scripts/quick_upload_test.sh
+   
+   # Detailed upload test (with health checks)
+   ./scripts/test_upload_pii.sh
+   
+   # Upload custom PDF
    ./scripts/test_upload.sh
    
    # Test validation

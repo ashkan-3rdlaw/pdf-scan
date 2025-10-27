@@ -2,8 +2,9 @@
 
 from typing import Annotated
 
-from fastapi import FastAPI, File, HTTPException, UploadFile, status
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
 
+from pdf_scan.db import Backends
 from pdf_scan.processing import DocumentProcessor
 from pdf_scan.validation import FileValidator
 from pdf_scan.validation.file_validator import ValidationError
@@ -18,6 +19,11 @@ app = FastAPI(
 )
 
 
+def get_backends() -> Backends:
+    """Dependency to get database backends."""
+    return Backends.create_in_memory()
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint for monitoring."""
@@ -29,7 +35,8 @@ async def health_check():
 
 @app.post("/upload")
 async def upload_pdf(
-    file: Annotated[UploadFile, File(description="PDF file to scan")]
+    file: Annotated[UploadFile, File(description="PDF file to scan")],
+    backends: Backends = Depends(get_backends),
 ):
     """
     Upload a PDF file for scanning.
@@ -38,6 +45,7 @@ async def upload_pdf(
     - Validates file size (max 10MB)
     - Generates unique document ID
     - Saves to temporary storage
+    - Stores document in database
     - Returns document metadata
     """
     # Validate and read uploaded file
@@ -63,6 +71,7 @@ async def upload_pdf(
             filename=filename,
             file_size=file_size,
             content=content,
+            backends=backends,
         )
     except Exception as e:
         raise HTTPException(

@@ -12,7 +12,26 @@ pdf-scan/
 │       ├── app.py                  # FastAPI application
 │       ├── main.py                 # Server entry point
 │       ├── models/                 # Data models
-│       │   └── __init__.py
+│       │   ├── __init__.py
+│       │   └── entities.py
+│       ├── db/                     # Database interfaces and implementations
+│       │   ├── __init__.py
+│       │   ├── backends.py         # Backends container for dependency management
+│       │   ├── factory.py           # Database factory for dependency injection
+│       │   ├── core/               # Core database interfaces
+│       │   │   ├── __init__.py
+│       │   │   ├── document_repository.py
+│       │   │   ├── finding_repository.py
+│       │   │   └── impl/           # Core implementations
+│       │   │       ├── __init__.py
+│       │   │       ├── in_memory_document_repository.py
+│       │   │       └── in_memory_finding_repository.py
+│       │   └── analytics/          # Analytics interfaces
+│       │       ├── __init__.py
+│       │       ├── metrics_repository.py
+│       │       └── impl/           # Analytics implementations
+│       │           ├── __init__.py
+│       │           └── in_memory_metrics_repository.py
 │       ├── processing/             # Document processing
 │       │   ├── __init__.py
 │       │   └── document_processor.py
@@ -23,6 +42,11 @@ pdf-scan/
 │   ├── fixtures/                   # Test data files
 │   ├── unit/                       # Unit tests
 │   │   ├── models/
+│   │   ├── db/                     # Database tests
+│   │   │   ├── test_backends.py     # Backends container tests
+│   │   │   ├── test_factory.py     # Factory tests
+│   │   │   ├── core/impl/          # Core implementation tests
+│   │   │   └── analytics/impl/     # Analytics implementation tests
 │   │   ├── validation/
 │   │   └── processing/
 │   └── integration/                # Integration tests

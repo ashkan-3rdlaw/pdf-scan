@@ -62,6 +62,7 @@ run_test "test_upload.sh" "Standard Upload Test (with PII)"
 run_test "quick_upload_test.sh" "Quick Upload Test"
 run_test "test_upload_pii.sh" "Comprehensive Upload Test (with health checks)"
 run_test "test_invalid_file.sh" "Invalid File Validation Tests"
+run_test "test_findings.sh" "Findings Endpoints Test"
 
 # Additional test with clean PDF
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -84,7 +85,7 @@ echo -e "${BLUE}╔════════════════════�
 echo -e "${BLUE}║                    TEST SUMMARY                            ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "Total Tests: $((PASSED + FAILED))"
+echo -e "Total Tests: $((PASSED + FAILED)) (7 test scripts)"
 echo -e "${GREEN}Passed: $PASSED${NC}"
 if [ $FAILED -gt 0 ]; then
     echo -e "${RED}Failed: $FAILED${NC}"

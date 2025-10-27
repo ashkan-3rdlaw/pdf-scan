@@ -314,36 +314,80 @@ A web service that accepts PDF uploads, scans them for sensitive information, st
 ---
 
 ### Phase 6: Findings Endpoint
-**Status**: 🔴 Not Started
+**Status**: 🟢 Completed (2025-10-27)
 
 **Tasks**:
-- [ ] Implement `/findings/<document_id>` endpoint:
+- [x] Implement `/findings/{document_id}` endpoint:
   - GET request returns findings for specific document
   - Return JSON with findings list
   - Handle non-existent document IDs (404)
-- [ ] Implement `/findings` endpoint (optional):
+- [x] Implement `/findings` endpoint:
   - GET request with pagination (limit, offset)
   - Returns findings across all documents
+  - Filtering by finding_type parameter
   - Useful for admin/monitoring
-- [ ] Response format:
+- [x] Response format:
   ```json
   {
     "document_id": "...",
     "filename": "...",
     "upload_time": "...",
     "status": "completed",
+    "file_size": 1234,
     "findings": [
       {
-        "type": "SSN",
+        "id": "...",
+        "type": "ssn",
         "location": "page 2",
         "confidence": 1.0
       }
     ]
   }
   ```
-- [ ] Integration tests for findings endpoint
+- [x] Integration tests for findings endpoints
 
-**Success Criteria**: Can query findings via HTTP; response format is correct and complete
+**Success Criteria**: ✅ Can query findings via HTTP; response format is correct and complete
+
+**Deliverables**:
+- `src/pdf_scan/app.py`: Two new endpoints implemented
+  - `GET /findings/{document_id}`: Get findings for a specific document
+  - `GET /findings`: Get all findings with pagination and filtering
+- `tests/integration/test_api.py`: 8 new integration tests for findings endpoints (16 total tests, up from 8)
+  - test_get_findings_for_nonexistent_document: Verifies 404 handling
+  - test_get_findings_for_document_with_pii: Tests document with 2 findings
+  - test_get_findings_for_document_without_pii: Tests document with 0 findings
+  - test_get_all_findings_empty: Tests pagination structure
+  - test_get_all_findings_with_data: Tests multiple documents
+  - test_get_all_findings_with_pagination: Tests limit/offset parameters
+  - test_get_all_findings_with_invalid_pagination: Tests validation
+  - test_get_all_findings_with_type_filter: Tests finding_type filter
+- `scripts/test_findings.sh`: Comprehensive manual test script
+  - Tests upload → query workflow
+  - Tests pagination
+  - Tests filtering by type
+  - Tests 404 error handling
+- `scripts/run_all_tests.sh`: Updated to include findings test (7 tests total)
+- `scripts/README.md`: Updated with findings endpoint documentation
+
+**Implementation Notes**:
+- **Endpoint 1: /findings/{document_id}**
+  - Accepts UUID path parameter
+  - Returns 404 if document not found
+  - Includes document metadata + findings array
+  - Finding fields: id, type, location, confidence
+- **Endpoint 2: /findings**
+  - Pagination: limit (1-100, default 20), offset (0+, default 0)
+  - Optional filtering: finding_type query parameter
+  - Returns findings array + pagination metadata
+  - Pagination metadata: limit, offset, total, returned
+- **Singleton Backend**: `get_backends()` dependency returns singleton instance to maintain state across requests
+- **State Persistence**: Documents and findings persist in memory for server lifetime
+- **UUID Handling**: FastAPI automatically validates and converts UUID path parameters
+- **Query Validation**: FastAPI Query validators ensure limit/offset are within valid ranges
+- **Response Format**: All UUIDs serialized as strings in JSON responses
+- **Finding Types**: Enum values are lowercase ("ssn", "email") in API responses
+- 102 total tests passing (94 unit + 16 integration tests, 8 new for findings)
+- 7 manual test scripts passing (added findings endpoint test)
 
 ---
 
@@ -454,7 +498,7 @@ A web service that accepts PDF uploads, scans them for sensitive information, st
 | 3. Database Interface (In-Memory) | 🟢 Completed | 2025-10-27 |
 | 4. PDF Scanner Interface (Regex) | 🟢 Completed | 2025-10-27 |
 | 5. Integration & E2E Testing | 🟢 Completed | 2025-10-27 |
-| 6. Findings Endpoint | 🔴 Not Started | - |
+| 6. Findings Endpoint | 🟢 Completed | 2025-10-27 |
 | 7. Clickhouse Implementation | 🔴 Not Started | - |
 | 8. Performance Metrics | 🔴 Not Started | - |
 

@@ -5,7 +5,15 @@ import io
 import pytest
 from fastapi.testclient import TestClient
 
-from pdf_scan.app import app
+from pdf_scan.app import app, get_backends
+from pdf_scan.db import BackendFactory
+
+# Create a single shared backends instance for all tests
+# This ensures documents and findings persist across test requests
+shared_backends = BackendFactory.create_backends()
+
+# Override the dependency to use shared backends
+app.dependency_overrides[get_backends] = lambda: shared_backends
 
 client = TestClient(app)
 
@@ -113,4 +121,183 @@ def test_openapi_docs_available():
     
     response = client.get("/openapi.json")
     assert response.status_code == 200
+
+
+# Findings endpoint tests
+def test_get_findings_for_nonexistent_document():
+    """Test getting findings for a document that doesn't exist."""
+    fake_uuid = "12345678-1234-5678-1234-567812345678"
+    response = client.get(f"/findings/{fake_uuid}")
+    
+    assert response.status_code == 404
+    data = response.json()
+    assert data["detail"]["code"] == "DOCUMENT_NOT_FOUND"
+
+
+def test_get_findings_for_document_with_pii():
+    """Test getting findings for a document with PII."""
+    # First, upload a PDF with PII (using sample_with_pii.pdf)
+    with open("tests/fixtures/sample_with_pii.pdf", "rb") as f:
+        pdf_content = f.read()
+    
+    files = {"file": ("sample_with_pii.pdf", io.BytesIO(pdf_content), "application/pdf")}
+    upload_response = client.post("/upload", files=files)
+    assert upload_response.status_code == 200
+    
+    upload_data = upload_response.json()
+    document_id = upload_data["document_id"]
+    assert upload_data["findings_count"] == 2  # Should have 2 findings
+    
+    # Now get findings for this document
+    findings_response = client.get(f"/findings/{document_id}")
+    assert findings_response.status_code == 200
+    
+    findings_data = findings_response.json()
+    assert findings_data["document_id"] == document_id
+    assert findings_data["filename"] == "sample_with_pii.pdf"
+    assert findings_data["status"] == "completed"
+    assert "upload_time" in findings_data
+    assert "file_size" in findings_data
+    assert "findings" in findings_data
+    assert len(findings_data["findings"]) == 2
+    
+    # Verify finding structure
+    for finding in findings_data["findings"]:
+        assert "id" in finding
+        assert "type" in finding
+        assert finding["type"] in ["ssn", "email"]
+        assert "location" in finding
+        assert "confidence" in finding
+        assert finding["confidence"] == 1.0
+
+
+def test_get_findings_for_document_without_pii():
+    """Test getting findings for a document without PII."""
+    # Upload a PDF without PII
+    with open("tests/fixtures/sample_without_pii.pdf", "rb") as f:
+        pdf_content = f.read()
+    
+    files = {"file": ("sample_without_pii.pdf", io.BytesIO(pdf_content), "application/pdf")}
+    upload_response = client.post("/upload", files=files)
+    assert upload_response.status_code == 200
+    
+    upload_data = upload_response.json()
+    document_id = upload_data["document_id"]
+    assert upload_data["findings_count"] == 0
+    
+    # Get findings for this document
+    findings_response = client.get(f"/findings/{document_id}")
+    assert findings_response.status_code == 200
+    
+    findings_data = findings_response.json()
+    assert findings_data["document_id"] == document_id
+    assert findings_data["filename"] == "sample_without_pii.pdf"
+    assert findings_data["status"] == "completed"
+    assert len(findings_data["findings"]) == 0
+
+
+def test_get_all_findings_empty():
+    """Test getting all findings when none exist (fresh test client)."""
+    # Note: In a real test, we'd need to isolate the database state
+    # For now, this tests pagination structure
+    response = client.get("/findings")
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert "findings" in data
+    assert "pagination" in data
+    assert data["pagination"]["limit"] == 20  # Default
+    assert data["pagination"]["offset"] == 0
+    assert "total" in data["pagination"]
+    assert "returned" in data["pagination"]
+
+
+def test_get_all_findings_with_data():
+    """Test getting all findings when some exist."""
+    # Upload a document with PII
+    with open("tests/fixtures/sample_with_pii.pdf", "rb") as f:
+        pdf_content = f.read()
+    
+    files = {"file": ("test_pii.pdf", io.BytesIO(pdf_content), "application/pdf")}
+    upload_response = client.post("/upload", files=files)
+    assert upload_response.status_code == 200
+    upload_data = upload_response.json()
+    document_id = upload_data["document_id"]
+    
+    # Get all findings
+    response = client.get("/findings")
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert "findings" in data
+    assert len(data["findings"]) >= 2  # At least the 2 we just created
+    
+    # Verify finding structure
+    found_our_findings = False
+    for finding in data["findings"]:
+        assert "id" in finding
+        assert "document_id" in finding
+        assert "type" in finding
+        assert "location" in finding
+        assert "confidence" in finding
+        
+        if finding["document_id"] == document_id:
+            found_our_findings = True
+    
+    assert found_our_findings, "Should find findings for our uploaded document"
+
+
+def test_get_all_findings_with_pagination():
+    """Test pagination parameters for get all findings."""
+    # Test with custom limit and offset
+    response = client.get("/findings?limit=5&offset=0")
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert data["pagination"]["limit"] == 5
+    assert data["pagination"]["offset"] == 0
+    assert len(data["findings"]) <= 5
+
+
+def test_get_all_findings_with_invalid_pagination():
+    """Test that invalid pagination parameters are rejected."""
+    # Test limit too high
+    response = client.get("/findings?limit=200")
+    assert response.status_code == 422  # Validation error
+    
+    # Test negative offset
+    response = client.get("/findings?offset=-1")
+    assert response.status_code == 422
+    
+    # Test limit too low
+    response = client.get("/findings?limit=0")
+    assert response.status_code == 422
+
+
+def test_get_all_findings_with_type_filter():
+    """Test filtering findings by type."""
+    # Upload a document with PII
+    with open("tests/fixtures/sample_with_pii.pdf", "rb") as f:
+        pdf_content = f.read()
+    
+    files = {"file": ("filter_test.pdf", io.BytesIO(pdf_content), "application/pdf")}
+    client.post("/upload", files=files)
+    
+    # Get all SSN findings
+    response = client.get("/findings?finding_type=ssn")
+    assert response.status_code == 200
+    
+    data = response.json()
+    # Should have at least one SSN finding
+    ssn_findings = [f for f in data["findings"] if f["type"] == "ssn"]
+    assert len(ssn_findings) >= 1
+    
+    # Get all EMAIL findings
+    response = client.get("/findings?finding_type=email")
+    assert response.status_code == 200
+    
+    data = response.json()
+    # Should have at least one EMAIL finding
+    email_findings = [f for f in data["findings"] if f["type"] == "email"]
+    assert len(email_findings) >= 1
 

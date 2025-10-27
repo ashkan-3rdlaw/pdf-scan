@@ -130,6 +130,25 @@ Tests the following scenarios:
 
 ---
 
+### 4. Test Findings Endpoints
+
+Test the findings query endpoints:
+
+```bash
+./scripts/test_findings.sh
+```
+
+This comprehensive test script:
+1. Uploads a PDF with PII
+2. Gets findings for the specific document
+3. Gets all findings with pagination
+4. Tests filtering by finding type
+5. Tests 404 for non-existent documents
+
+**Expected:** All endpoints return appropriate responses with findings data
+
+---
+
 ## API Documentation
 
 Once the server is running, visit:
@@ -181,6 +200,9 @@ Once the server is running, visit:
    
    # Test validation
    ./scripts/test_invalid_file.sh
+   
+   # Test findings endpoints
+   ./scripts/test_findings.sh
    ```
 
 3. **Check server logs** in the first terminal to see request processing

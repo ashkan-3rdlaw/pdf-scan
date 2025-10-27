@@ -1,8 +1,9 @@
 """FastAPI web server for PDF scanning service."""
 
-from typing import Annotated
+from typing import Annotated, Optional
+from uuid import UUID
 
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
+from fastapi import Depends, FastAPI, File, HTTPException, Query, UploadFile, status
 
 from pdf_scan.db import BackendFactory, Backends
 from pdf_scan.processing import DocumentProcessor
@@ -18,10 +19,23 @@ app = FastAPI(
     version=VERSION,
 )
 
+# Singleton: Create a single shared backends instance for the lifetime of the application
+# This ensures documents and findings persist across requests
+_backends_instance: Optional[Backends] = None
+
 
 def get_backends() -> Backends:
-    """Dependency to get database backends (includes scanner)."""
-    return BackendFactory.create_backends()
+    """
+    Dependency to get database backends (includes scanner).
+    
+    Returns the same backends instance across all requests to maintain
+    in-memory database state. In production with Clickhouse, this would
+    still work as Clickhouse maintains its own persistence.
+    """
+    global _backends_instance
+    if _backends_instance is None:
+        _backends_instance = BackendFactory.create_backends()
+    return _backends_instance
 
 
 @app.get("/health")
@@ -83,4 +97,107 @@ async def upload_pdf(
         )
     
     return response
+
+
+@app.get("/findings/{document_id}")
+async def get_findings_for_document(
+    document_id: UUID,
+    backends: Backends = Depends(get_backends),
+):
+    """
+    Get findings for a specific document.
+    
+    Returns document metadata along with all findings detected during scanning.
+    
+    Args:
+        document_id: UUID of the document to query
+        
+    Returns:
+        JSON with document metadata and list of findings
+        
+    Raises:
+        404: Document not found
+    """
+    # Get document from database
+    document = backends.document.get_document(document_id)
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "error": f"Document {document_id} not found",
+                "code": "DOCUMENT_NOT_FOUND",
+            },
+        )
+    
+    # Get findings for this document
+    findings = backends.finding.get_findings(document_id)
+    
+    # Format response
+    return {
+        "document_id": str(document.id),
+        "filename": document.filename,
+        "upload_time": document.upload_time.isoformat(),
+        "status": document.status.value,
+        "file_size": document.file_size,
+        "findings": [
+            {
+                "id": str(finding.id),
+                "type": finding.finding_type.value,
+                "location": finding.location,
+                "confidence": finding.confidence,
+            }
+            for finding in findings
+        ],
+    }
+
+
+@app.get("/findings")
+async def get_all_findings(
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    finding_type: Optional[str] = None,
+    backends: Backends = Depends(get_backends),
+):
+    """
+    Get findings across all documents with pagination.
+    
+    Useful for admin/monitoring to see all findings in the system.
+    
+    Args:
+        limit: Maximum number of findings to return (1-100, default 20)
+        offset: Number of findings to skip (default 0)
+        finding_type: Optional filter by finding type (e.g., "SSN", "EMAIL")
+        
+    Returns:
+        JSON with findings list and metadata
+    """
+    # Get findings from database
+    findings = backends.finding.get_all_findings(
+        limit=limit,
+        offset=offset,
+        finding_type=finding_type,
+    )
+    
+    # Get total count for pagination metadata
+    total_count = backends.finding.count_findings(None)  # Count all findings
+    
+    # Format response
+    return {
+        "findings": [
+            {
+                "id": str(finding.id),
+                "document_id": str(finding.document_id),
+                "type": finding.finding_type.value,
+                "location": finding.location,
+                "confidence": finding.confidence,
+            }
+            for finding in findings
+        ],
+        "pagination": {
+            "limit": limit,
+            "offset": offset,
+            "total": total_count,
+            "returned": len(findings),
+        },
+    }
 

@@ -323,8 +323,8 @@ Deploy your PDF scan service to the cloud in minutes:
    - Connect your Git repository
    - Create new Web Service
    - Use these settings:
-     - **Build Command**: `pip install -r requirements.txt`
-     - **Start Command**: `uvicorn src.pdf_scan.app:app --host 0.0.0.0 --port $PORT`
+     - **Build Command**: `uv sync --frozen`
+     - **Start Command**: `uv run python -m pdf_scan.main`
      - **Environment Variables**:
        ```bash
        DATABASE_BACKEND=memory

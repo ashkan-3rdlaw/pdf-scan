@@ -42,8 +42,8 @@ Ensure your repository contains:
 3. **Configure Service**
    - **Name**: `pdf-scan-service` (or your preferred name)
    - **Environment**: `Python 3`
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `uvicorn src.pdf_scan.app:app --host 0.0.0.0 --port $PORT`
+   - **Build Command**: `uv sync --frozen`
+   - **Start Command**: `uv run python -m pdf_scan.main`
    - **Instance Type**: `Free` (for testing)
 
 4. **Set Environment Variables**
@@ -165,7 +165,7 @@ Once deployed, your service will be available at:
 ```bash
 # Test locally with Render-like environment
 export PORT=8000
-uvicorn src.pdf_scan.app:app --host 0.0.0.0 --port $PORT
+uv run python -m pdf_scan.main
 
 # Check service health
 curl http://localhost:8000/health

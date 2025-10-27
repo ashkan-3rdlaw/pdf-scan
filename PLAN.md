@@ -515,12 +515,12 @@ A web service that accepts PDF uploads, scans them for sensitive information, st
 **Status**: 🟡 In Progress
 
 **Tasks**:
-- [x] Create `requirements.txt` for Render compatibility (since Render doesn't natively support `uv`)
+- [x] Create `requirements.txt` for Render compatibility (backup for uv)
 - [x] Create `render.yaml` for Infrastructure as Code deployment
 - [x] Configure environment variables for in-memory backend
 - [x] Set up Render web service configuration:
-  - Build command: `pip install -r requirements.txt`
-  - Start command: `uvicorn src.pdf_scan.app:app --host 0.0.0.0 --port $PORT`
+  - Build command: `uv sync --frozen`
+  - Start command: `uv run python -m pdf_scan.main`
   - Environment: Python 3
 - [x] Create comprehensive testing scripts:
   - Cloud deployment testing script
@@ -538,7 +538,8 @@ A web service that accepts PDF uploads, scans them for sensitive information, st
 - Can upgrade to ClickHouse later
 
 **Deliverables**:
-- ✅ `requirements.txt`: Python dependencies for Render deployment
+- ✅ `requirements.txt`: Python dependencies for Render deployment (backup)
+- ✅ `uv.lock`: Locked dependencies for reproducible builds
 - ✅ `render.yaml`: Infrastructure as Code configuration
 - ✅ `docs/deployment.md`: Comprehensive deployment guide for Render.com
 - ✅ Updated `README.md`: Cloud deployment instructions

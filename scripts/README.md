@@ -16,7 +16,22 @@ uv run pdf-scan
 
 The server will start on `http://localhost:8000` with auto-reload enabled.
 
-## Scripts
+## Quick Start
+
+Run all test scripts at once:
+
+```bash
+./scripts/run_all_tests.sh
+```
+
+This will automatically:
+1. Check if the server is running
+2. Run all test scripts in sequence
+3. Display a summary of passed/failed tests
+
+**Note:** Requires `jq` to be installed (`brew install jq` on macOS).
+
+## Individual Scripts
 
 ### 1. Health Check
 
@@ -147,6 +162,11 @@ Once the server is running, visit:
 
 2. **In another terminal**, run tests:
    ```bash
+   # Run all tests at once (recommended)
+   ./scripts/run_all_tests.sh
+   
+   # Or run individual tests:
+   
    # Test health
    ./scripts/test_health.sh
    

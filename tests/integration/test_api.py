@@ -49,9 +49,11 @@ startxref
     data = response.json()
     assert "document_id" in data
     assert data["filename"] == "test.pdf"
-    assert data["status"] == "pending"
+    assert data["status"] == "completed"  # Now scanned immediately
     assert "upload_time" in data
     assert data["file_size"] == len(pdf_content)
+    assert "findings_count" in data  # New field from scanner integration
+    assert data["findings_count"] == 0  # Test PDF has no PII
 
 
 def test_upload_no_file():

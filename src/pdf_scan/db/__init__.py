@@ -1,11 +1,11 @@
 """Database interfaces and implementations."""
 
+from .analytics import MetricsRepository
+from .analytics.impl import InMemoryMetricsRepository
 from .backends import Backends
 from .core import DocumentRepository, FindingRepository
 from .core.impl import InMemoryDocumentRepository, InMemoryFindingRepository
-from .analytics import MetricsRepository
-from .analytics.impl import InMemoryMetricsRepository
-from .factory import DatabaseFactory
+from .factory import BackendFactory
 
 __all__ = [
     # Core interfaces
@@ -19,7 +19,7 @@ __all__ = [
     # Analytics implementations
     "InMemoryMetricsRepository",
     # Factory
-    "DatabaseFactory",
+    "BackendFactory",
     # Backends container
     "Backends",
 ]

@@ -17,7 +17,7 @@ pdf-scan/
 │       ├── db/                     # Database interfaces and implementations
 │       │   ├── __init__.py
 │       │   ├── backends.py         # Backends container for dependency management
-│       │   ├── factory.py           # Database factory for dependency injection
+│       │   ├── factory.py          # Backend factory for dependency injection
 │       │   ├── core/               # Core database interfaces
 │       │   │   ├── __init__.py
 │       │   │   ├── document_repository.py
@@ -35,19 +35,29 @@ pdf-scan/
 │       ├── processing/             # Document processing
 │       │   ├── __init__.py
 │       │   └── document_processor.py
+│       ├── scanner/                # PDF scanning
+│       │   ├── __init__.py
+│       │   ├── pdf_scanner_interface.py
+│       │   └── regex_scanner.py
 │       └── validation/             # File validation
 │           ├── __init__.py
 │           └── file_validator.py
 ├── tests/                          # Test suite (mirrors src structure)
 │   ├── fixtures/                   # Test data files
+│   │   ├── sample_with_pii.pdf
+│   │   └── sample_without_pii.pdf
 │   ├── unit/                       # Unit tests
 │   │   ├── models/
+│   │   │   └── test_models.py
 │   │   ├── db/                     # Database tests
 │   │   │   ├── test_backends.py     # Backends container tests
 │   │   │   ├── test_factory.py     # Factory tests
 │   │   │   ├── core/impl/          # Core implementation tests
 │   │   │   └── analytics/impl/     # Analytics implementation tests
+│   │   ├── scanner/                # Scanner tests
+│   │   │   └── test_regex_scanner.py
 │   │   ├── validation/
+│   │   │   └── test_file_validator.py
 │   │   └── processing/
 │   └── integration/                # Integration tests
 │       └── test_api.py
@@ -108,6 +118,11 @@ See [tests/README.md](tests/README.md) for detailed testing documentation.
 See [scripts/README.md](scripts/README.md) for manual testing with curl:
 
 ```bash
+# Run all test scripts (health, upload, validation)
+./scripts/run_all_tests.sh
+
+# Or run individual tests:
+
 # Test health endpoint
 ./scripts/test_health.sh
 
@@ -118,15 +133,20 @@ See [scripts/README.md](scripts/README.md) for manual testing with curl:
 ./scripts/test_invalid_file.sh
 ```
 
+**Note:** The manual test scripts require the server to be running (`uv run pdf-scan`).
+
 ## Implementation Plan
 
 See [PLAN.md](PLAN.md) for detailed implementation plan and progress tracking.
 
-**Current Status**: Initial Setup
+**Current Status**: Phases 0-5 Complete (Upload → Scan → Store workflow functional)
 
 ## Technology Stack
 
 - **Language**: Python 3.13
 - **Dependency Management**: uv
-
-Dependencies will be added incrementally as features are implemented.
+- **Web Framework**: FastAPI
+- **PDF Processing**: pypdf
+- **Database**: In-memory (Clickhouse planned for Phase 7)
+- **Testing**: pytest, httpx
+- **Code Quality**: ruff (linting and formatting)

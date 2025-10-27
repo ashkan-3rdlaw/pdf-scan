@@ -7,11 +7,15 @@ echo ""
 # Test 1: Non-PDF file
 echo "Test 1: Uploading a non-PDF file (.txt)..."
 echo "test content" > /tmp/test.txt
-curl -X POST "http://localhost:8000/upload" \
+response=$(curl -X POST "http://localhost:8000/upload" \
   -H "accept: application/json" \
   -F "file=@/tmp/test.txt" \
-  -w "\n\nHTTP Status: %{http_code}\n" \
-  -s | jq '.'
+  -w "\n%{http_code}" \
+  -s)
+http_code=$(echo "$response" | tail -n1)
+json_body=$(echo "$response" | sed '$d')
+echo "$json_body" | jq '.'
+echo "HTTP Status: $http_code"
 rm /tmp/test.txt
 echo ""
 echo "---"
@@ -20,11 +24,15 @@ echo ""
 # Test 2: Empty file
 echo "Test 2: Uploading an empty PDF..."
 touch /tmp/empty.pdf
-curl -X POST "http://localhost:8000/upload" \
+response=$(curl -X POST "http://localhost:8000/upload" \
   -H "accept: application/json" \
   -F "file=@/tmp/empty.pdf" \
-  -w "\n\nHTTP Status: %{http_code}\n" \
-  -s | jq '.'
+  -w "\n%{http_code}" \
+  -s)
+http_code=$(echo "$response" | tail -n1)
+json_body=$(echo "$response" | sed '$d')
+echo "$json_body" | jq '.'
+echo "HTTP Status: $http_code"
 rm /tmp/empty.pdf
 echo ""
 echo "---"
@@ -32,10 +40,14 @@ echo ""
 
 # Test 3: No file
 echo "Test 3: No file provided..."
-curl -X POST "http://localhost:8000/upload" \
+response=$(curl -X POST "http://localhost:8000/upload" \
   -H "accept: application/json" \
-  -w "\n\nHTTP Status: %{http_code}\n" \
-  -s | jq '.'
+  -w "\n%{http_code}" \
+  -s)
+http_code=$(echo "$response" | tail -n1)
+json_body=$(echo "$response" | sed '$d')
+echo "$json_body" | jq '.'
+echo "HTTP Status: $http_code"
 echo ""
 echo "---"
 echo ""

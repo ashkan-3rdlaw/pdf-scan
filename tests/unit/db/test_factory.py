@@ -1,14 +1,14 @@
-"""Tests for DatabaseFactory."""
+"""Tests for BackendFactory."""
 
-from pdf_scan.db import DatabaseFactory
+from pdf_scan.db import BackendFactory
 
 
-class TestDatabaseFactory:
-    """Test suite for DatabaseFactory."""
+class TestBackendFactory:
+    """Test suite for BackendFactory."""
 
     def test_create_document_repository(self):
         """Test creating a document repository."""
-        repo = DatabaseFactory.create_document_repository()
+        repo = BackendFactory.create_document_repository()
         assert repo is not None
         assert hasattr(repo, 'store_document')
         assert hasattr(repo, 'get_document')
@@ -17,7 +17,7 @@ class TestDatabaseFactory:
 
     def test_create_finding_repository(self):
         """Test creating a finding repository."""
-        repo = DatabaseFactory.create_finding_repository()
+        repo = BackendFactory.create_finding_repository()
         assert repo is not None
         assert hasattr(repo, 'store_finding')
         assert hasattr(repo, 'get_findings')
@@ -26,7 +26,7 @@ class TestDatabaseFactory:
 
     def test_create_metrics_repository(self):
         """Test creating a metrics repository."""
-        repo = DatabaseFactory.create_metrics_repository()
+        repo = BackendFactory.create_metrics_repository()
         assert repo is not None
         assert hasattr(repo, 'store_metric')
         assert hasattr(repo, 'get_metrics')
@@ -34,7 +34,7 @@ class TestDatabaseFactory:
 
     def test_create_all_repositories(self):
         """Test creating all repositories at once."""
-        doc_repo, finding_repo, metrics_repo = DatabaseFactory.create_all_repositories()
+        doc_repo, finding_repo, metrics_repo = BackendFactory.create_all_repositories()
         
         assert doc_repo is not None
         assert finding_repo is not None
@@ -47,19 +47,36 @@ class TestDatabaseFactory:
 
     def test_factory_returns_different_instances(self):
         """Test that factory returns different instances each time."""
-        repo1 = DatabaseFactory.create_document_repository()
-        repo2 = DatabaseFactory.create_document_repository()
+        repo1 = BackendFactory.create_document_repository()
+        repo2 = BackendFactory.create_document_repository()
         
         assert repo1 is not repo2
         assert type(repo1) == type(repo2)
 
     def test_repositories_are_in_memory_implementations(self):
         """Test that factory returns in-memory implementations."""
-        doc_repo = DatabaseFactory.create_document_repository()
-        finding_repo = DatabaseFactory.create_finding_repository()
-        metrics_repo = DatabaseFactory.create_metrics_repository()
+        doc_repo = BackendFactory.create_document_repository()
+        finding_repo = BackendFactory.create_finding_repository()
+        metrics_repo = BackendFactory.create_metrics_repository()
         
         assert 'InMemory' in type(doc_repo).__name__
         assert 'InMemory' in type(finding_repo).__name__
         assert 'InMemory' in type(metrics_repo).__name__
+
+    def test_create_scanner(self):
+        """Test creating a scanner."""
+        scanner = BackendFactory.create_scanner()
+        assert scanner is not None
+        assert hasattr(scanner, 'scan_pdf')
+        assert hasattr(scanner, 'get_supported_patterns')
+        assert 'Regex' in type(scanner).__name__
+
+    def test_create_backends(self):
+        """Test creating a complete backends instance."""
+        backends = BackendFactory.create_backends()
+        assert backends is not None
+        assert backends.document is not None
+        assert backends.finding is not None
+        assert backends.metrics is not None
+        assert backends.scanner is not None
 

@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
 
-from pdf_scan.db import Backends
+from pdf_scan.db import BackendFactory, Backends
 from pdf_scan.processing import DocumentProcessor
 from pdf_scan.validation import FileValidator
 from pdf_scan.validation.file_validator import ValidationError
@@ -20,8 +20,8 @@ app = FastAPI(
 
 
 def get_backends() -> Backends:
-    """Dependency to get database backends."""
-    return Backends.create_in_memory()
+    """Dependency to get database backends (includes scanner)."""
+    return BackendFactory.create_backends()
 
 
 @app.get("/health")

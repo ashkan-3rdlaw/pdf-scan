@@ -22,5 +22,5 @@ htmlcov/
 .DS_Store
 
 # uv
-uv.lock
+# uv.lock  # Include lock file for reproducible builds
 

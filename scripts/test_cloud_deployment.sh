@@ -31,7 +31,7 @@ test_endpoint() {
     
     response=$(curl -s -w "\n%{http_code}" "${SERVICE_URL}${endpoint}")
     status_code=$(echo "$response" | tail -n1)
-    body=$(echo "$response" | head -n -1)
+    body=$(echo "$response" | sed '$d')
     
     if [ "$status_code" = "$expected_status" ]; then
         echo -e "${GREEN}✅ ${description} - Status: ${status_code}${NC}"
@@ -58,7 +58,7 @@ test_upload() {
     
     response=$(curl -s -w "\n%{http_code}" -X POST -F "file=@${file_path}" "${SERVICE_URL}/upload")
     status_code=$(echo "$response" | tail -n1)
-    body=$(echo "$response" | head -n -1)
+    body=$(echo "$response" | sed '$d')
     
     if [ "$status_code" = "200" ]; then
         echo -e "${GREEN}✅ ${description} - Status: ${status_code}${NC}"
@@ -87,7 +87,7 @@ test_findings() {
     
     response=$(curl -s -w "\n%{http_code}" "${SERVICE_URL}/findings/${document_id}")
     status_code=$(echo "$response" | tail -n1)
-    body=$(echo "$response" | head -n -1)
+    body=$(echo "$response" | sed '$d')
     
     if [ "$status_code" = "200" ]; then
         echo -e "${GREEN}✅ ${description} - Status: ${status_code}${NC}"
@@ -141,7 +141,7 @@ test_endpoint "/findings/00000000-0000-0000-0000-000000000000" "Test invalid doc
 echo -e "${YELLOW}Testing invalid file upload...${NC}"
 response=$(curl -s -w "\n%{http_code}" -X POST -F "file=@README.md" "${SERVICE_URL}/upload")
 status_code=$(echo "$response" | tail -n1)
-body=$(echo "$response" | head -n -1)
+body=$(echo "$response" | sed '$d')
 
 if [ "$status_code" = "400" ]; then
     echo -e "${GREEN}✅ Invalid file upload - Status: ${status_code}${NC}"
